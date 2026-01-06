@@ -9,7 +9,7 @@ import plotly.graph_objects as go
 import numpy as np
 from scipy.stats import norm
 
-def black_scholes_price(S_0, X, r_f, T, volatility):
+def black_scholes_price(S_0, X, r_f, T, volatility, q):
     ''' Computes the Option Price via the Black Scholes Theorem using the given asset metrics
     
     Args:
@@ -24,14 +24,14 @@ def black_scholes_price(S_0, X, r_f, T, volatility):
     
     '''
     
-    d_1 = (np.log(S_0/X) + T*(r_f + (volatility ** 2)/2)) / (volatility * np.sqrt(T))
-    d_2 = (np.log(S_0/X) + T*(r_f - (volatility ** 2)/2)) / (volatility * np.sqrt(T))
-    C_0 = S_0*norm.cdf(d_1) - (X * np.exp(-r_f*T) * norm.cdf(d_2))
+    d_1 = (np.log(S_0/X) + T*(r_f - q + (volatility ** 2)/2)) / (volatility * np.sqrt(T))
+    d_2 = (np.log(S_0/X) + T*(r_f - q - (volatility ** 2)/2)) / (volatility * np.sqrt(T))
+    C_0 = S_0*np.exp(-q*T)*norm.cdf(d_1) - (X * np.exp(-r_f*T) * norm.cdf(d_2))
     
     return C_0
     
 
-def binomial_tree_price(S_0, X, r_f, T, volatility, N):
+def binomial_tree_price(S_0, X, r_f, T, volatility, N, q):
     ''' Computes the Option Price via the Binomial Tree Method using the given asset metrics
     
     Args:
@@ -50,7 +50,7 @@ def binomial_tree_price(S_0, X, r_f, T, volatility, N):
     #Calculate the values for the up_steps, down_steps, and their probabilities for the binomial tree
     up_step = np.exp(volatility * np.sqrt(T / N))
     down_step = 1 / up_step
-    p_up = (np.exp(r_f*T/N) - down_step) / (up_step - down_step)
+    p_up = (np.exp((r_f-q)*T/N) - down_step) / (up_step - down_step)
     p_down = 1 - p_up
     
     #Creates 2D Array to store future stock prices
@@ -98,7 +98,7 @@ def binomial_tree_price(S_0, X, r_f, T, volatility, N):
     
     return C_0
             
-def monte_carlo_price(S_0, X, r_f, T, volatility, n_sim=10000):
+def monte_carlo_price(S_0, X, r_f, T, volatility, q, n_sim=10000):
     ''' Computes the Option Price via the Monte Carlo Method using the given asset metrics
     
     Args:
@@ -114,9 +114,9 @@ def monte_carlo_price(S_0, X, r_f, T, volatility, n_sim=10000):
     
     '''
     
-    np.random.seed(12)
+    np.random.seed(None)
     Z_random = np.random.standard_normal(n_sim)
-    exponent = T * (r_f - (0.5 * (volatility ** 2))) + volatility * np.sqrt(T) * Z_random
+    exponent = T * (r_f - q - (0.5 * (volatility ** 2))) + volatility * np.sqrt(T) * Z_random
     simulated_stock_prices = S_0 * np.exp(exponent)
     payoffs = np.maximum(simulated_stock_prices - X, 0)
     discount_term = np.exp(-1 * r_f * T)
